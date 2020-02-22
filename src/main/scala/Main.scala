@@ -1,15 +1,12 @@
 import akka.actor.ActorSystem
-import akka.http.javadsl.server.ExceptionHandler
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
-
 import scala.io.StdIn
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 import akka.http.scaladsl.server.Directives
-import StatusCodes._
-import WebServer.{complete, extractUri}
+
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val employeeNameFormat = jsonFormat2(EmployeeName)
@@ -26,31 +23,32 @@ object WebServer extends Directives with JsonSupport {
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
+    // TODO add exception handler
     val route =
       concat(
         get {
-          pathPrefix("employee" / IntNumber) { id =>
-            // TODO handle exceptions/possible implement with Future, throw 404 if employee does not exist
+          pathPrefix("employees" / IntNumber) { id =>
+            // TODO handle exceptions/possible  404 if employee does not exist
             // TODO return employee
             employeeDAO.get(id)
             complete(StatusCodes.OK)
           }
         } ~
-          post {
-            path("employee") {
-              entity(as[Employee]) { Employee =>
-                employeeDAO.create(Employee)
-                complete(StatusCodes.OK)
-              }
-            }
-          } ~
-          delete {
-            path("employee" / IntNumber) { id =>
-              // TODO handle exceptions
-              employeeDAO.delete(id)
+        post {
+          path("employee") {
+            entity(as[Employee]) { Employee =>
+              employeeDAO.create(Employee)
               complete(StatusCodes.OK)
             }
           }
+        } ~
+        delete {
+          path("employees" / IntNumber) { id =>
+            // TODO handle exceptions
+            employeeDAO.delete(id)
+            complete(StatusCodes.OK)
+          }
+        }
       )
     val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 
